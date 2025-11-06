@@ -1,0 +1,10 @@
+{
+    "CHECK_INTERVAL": 30,
+    "XMIST_USERNAME": "XXXXXX",
+    "XMIST_PASSWORD": "XXXXXXXXX",
+    "use_remember_token": false,
+    "only_use_remember_token": false,
+    "rme_token": "XXXXXXXXXXXXX",
+    "advance_waiting_time_seconds": 900,
+    "request_timeout": 30
+}
