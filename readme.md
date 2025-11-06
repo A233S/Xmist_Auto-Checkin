@@ -17,7 +17,7 @@
 
 #### 方法一:
 
-1. 去 **[releases](releases)** 下载已经打包好了的压缩包，解压后获得以下文件:
+1. 去 **[releases](https://github.com/A233S/Xmist_Auto-Checkin/releases)** 下载已经打包好了的压缩包，解压后获得以下文件:
 
 ```
 .
