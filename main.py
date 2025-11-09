@@ -13,9 +13,30 @@ session = requests.Session()
 
 data_new = []
 
-def log(message: str):
+# level.0为debug, level.1为info, level.2为重要(自动push)
+def log(message: str, level=1):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{now}] {message}")
+    if level == 0 and DEBUG:
+        print(f"[debug] [{now}] {message}")
+    elif level == 1:
+        print(f"[info] [{now}] {message}")
+    elif level == 2:
+        print(f"[important] [{now}] {message}")
+        push(message)
+
+def push(summary, conetnt=None):
+    if config_data['push']['enable']:
+        if conetnt == None:
+            conetnt = summary
+        
+        data = {
+            "content": conetnt,
+            "summary": summary,
+            "contentType": 1,
+            "spt": config_data['push']['WxPusher_SPT']
+        }
+
+        requests.post("https://wxpusher.zjiecode.com/api/send/message/simple-push", json=data)
 
 def login(USERNAME, PASSWORD):
     session.headers.update({
@@ -66,8 +87,7 @@ def get_token_and_ticket_by_rme_token(rme):
         session.cookies.set('congress', token)
         session.cookies.set('online_ticket', ticket)
 
-        if DEBUG:
-            log(f"[登录 1/5] token: {token}, ticket: {ticket}")
+        log(f"[登录 1/5] token: {token}, ticket: {ticket}", 0)
     else:
         return 1
 
@@ -105,7 +125,7 @@ def get_token_and_ticket_by_password(username, password, use_rme):
         "token": "LlyiKwDQdHjd50iZhOQneW1qqxU6rYg2tmj4EYH1HMk",
         "type": 50100
     }
-    captcha_sp_result = requests.post("http://api.jfbym.com/api/YmServer/customApi", json=data).json()
+    captcha_sp_result = requests.post("http://api.jfbym.com/api/YmServer/customApi", json=data, timeout=120).json()
     if captcha_sp_result['code'] == 10000:
         captcha_code = captcha_sp_result['data']['data']
     else:
@@ -155,8 +175,7 @@ def get_access_token_by_oauth(token, ticket):
         "Authorization": f"Bearer {token}"
     })
 
-    if DEBUG:
-        log(f"[登录 1/5] token: {token}, ticket: {ticket}")
+    log(f"[登录 1/5] token: {token}, ticket: {ticket}", 0)
     
     """[2/5] OAuth第一步: 携带token向后端请求登录"""
     try:
@@ -169,8 +188,7 @@ def get_access_token_by_oauth(token, ticket):
     oauth_approval_match = re.search(r'oauth_approval=([^&"]+)', respone.text)
     if oauth_approval_match:
         oauth_approval = oauth_approval_match.group(1)
-        if DEBUG:
-            log(f"[登录 2/5] 成功获取oauth_approval: {oauth_approval}")
+        log(f"[登录 2/5] 成功获取oauth_approval: {oauth_approval}", 0)
     else:
         log("OAuth第一步失败, 无法获取oauth_approval")
         return 1
@@ -184,8 +202,7 @@ def get_access_token_by_oauth(token, ticket):
     
     result = respone.json()
     if result.get('code') == 0 and result.get('data').get('appName') != None:
-        if DEBUG:
-            log(f"[登录 3/5] 审批确认成功, 应用名称为\"{result.get('data').get('appName')}\"")
+        log(f"[登录 3/5] 审批确认成功, 应用名称为\"{result.get('data').get('appName')}\"", 0)
     else:
         log("OAuth第二步失败, 无法进行审批确认")
 
@@ -201,8 +218,7 @@ def get_access_token_by_oauth(token, ticket):
         auth_code_match = re.search(r"(?<=code=)[\w]+", result.get('data'))
         if auth_code_match:
             auth_code = auth_code_match.group()
-            if DEBUG:
-                log(f"[登录 4/5] 成功获取授权码: {auth_code}")
+            log(f"[登录 4/5] 成功获取授权码: {auth_code}", 0)
         else:
             log("OAuth第三步失败, 无法获取授权码")
             return 1
@@ -228,8 +244,7 @@ def get_access_token_by_oauth(token, ticket):
     result = respone.json()
     if result.get('access_token') != None:
         access_token = result.get('access_token')
-        if DEBUG:
-            log(f"[登录 5/5] 登录成功啦, access_token={access_token}")
+        log(f"[登录 5/5] 登录成功啦, access_token={access_token}", 0)
     else:
         log(f"OAuth第三步失败, 无法获取access_token")
         return 1
@@ -305,7 +320,7 @@ def get_checkin_data():
     # 计划存储的内容
     #[
     #    {
-    #        "id": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX_(index)",
+    #        "id": "3ea431e69f97ff186353a2eb36ba0a21_(index)",
     #        "name": "语文",
     #        "state": "signed_in",   // signed_in已签到, not_signed_in未签到, pending未发起, unknown未知
     #        "start_time": "14:25",
@@ -317,7 +332,7 @@ def get_checkin_data():
     #            "longitude": "118.07279",
     #            "latitude": "24.61582"
     #        },
-    #        "sign_in_uuid": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXX"  // 发送签到请求所携带的uuid
+    #        "sign_in_uuid": "e0f4b978e022ff5d987d3a37d03755cb"  // 发送签到请求所携带的uuid
     #    }
     #]
 
@@ -337,6 +352,26 @@ def get_checkin_data():
             location_data = json.load(f)
         data_new[index]['location_info']['longitude'] = location_data.get(data_new[index]['location_info']['name'], {}).get('longitude', None)
         data_new[index]['location_info']['latitude'] = location_data.get(data_new[index]['location_info']['name'], {}).get('latitude', None)
+
+        # 如果 `location_info.json` 里没有精确的位置, 则找一个最接近的
+        if data_new[index]['location_info']['longitude'] == None:
+            class_location = data_new[index]['location_info']['name']
+            ambiguous_location = location_data
+            i = 0
+            while True:
+                ambiguous_location_new = []
+                for location in ambiguous_location:
+                    if location[i] == class_location[i]:
+                        ambiguous_location_new.append(location)
+                if ambiguous_location_new != []:
+                    ambiguous_location = ambiguous_location_new
+                    i += 1
+                else:
+                    break
+            ambiguous_location_result = ambiguous_location[0]
+            log(f"警告: `{class_location}` 教室没有在 `location_info.json` 里找到精确位置, 使用 `{ambiguous_location_result}` 教室位置代替")
+            data_new[index]['location_info']['longitude'] = location_data.get(ambiguous_location_result, {}).get('longitude', None)
+            data_new[index]['location_info']['latitude'] = location_data.get(ambiguous_location_result, {}).get('latitude', None)
 
         if course['zhxyKqxtQdrwxxQueryDTOS'] != []:
             match course['zhxyKqxtQdrwxxQueryDTOS'][0]['qdzt']:
@@ -367,14 +402,12 @@ def get_checkin_data():
 def request_to_sign_in(id):
     for index, course in enumerate(data_new):
         if course['id'] == id:
-            if DEBUG:
-                log(course)
+            log(course, 0)
             index_id = index
             break
     
     if data_new[index_id]['sign_in_uuid'] == None:
-        if DEBUG:
-            log("没有签到uuid, 无法签到")
+        log("没有签到uuid, 无法签到", 0)
         return 1
 
     match data_new[index_id]['type']:
@@ -392,8 +425,7 @@ def request_to_sign_in(id):
     latitude = data_new[index_id]['location_info']['latitude']
 
     if longitude == None or latitude == None:
-        if DEBUG:
-            log("没有位置信息, 无法签到")
+        log("没有位置信息, 无法签到", 0)
         return 2
     
     post_data = {
@@ -404,8 +436,7 @@ def request_to_sign_in(id):
         "qdwd": f"{latitude}"
     }
 
-    if DEBUG == True:
-        log(post_data)
+    log(post_data, 0)
     
     try:
         respone = session.post("https://app.xmist.edu.cn/gateway/xmistWyyService/api/zhxyKqxtQdrwxx/qd", json=post_data, timeout=config_data['request_timeout'])
@@ -413,8 +444,7 @@ def request_to_sign_in(id):
         log("请求签到失败, 可能为服务器过载或网络错误")
         return 1
 
-    if DEBUG == True:
-        log(respone.text)
+    log(respone.text, 0)
     
     try:
         data_respone = respone.json()
@@ -437,8 +467,7 @@ def main_loop():
     global data_new
     log("尝试获取签到任务信息")
     data_new = get_checkin_data()
-    if DEBUG:
-        log(data_new)
+    log(data_new, 0)
     if data_new == False:
         log("获取签到任务信息失败")
         return 3
@@ -446,7 +475,7 @@ def main_loop():
         now = datetime.datetime.now()
         next_6am = datetime.datetime(now.year, now.month, now.day, 6, 0, 0) + datetime.timedelta(days=1)
         next_6am_timedelta = next_6am - now
-        log("今天的课表为空, 或无法获取课表, 程序将会在 {next_6am} 继续运行")
+        log(f"今天的课表为空, 或无法获取课表, 程序将会在 {next_6am} 继续运行")
         time.sleep(next_6am_timedelta.seconds)
         return 0
     
@@ -456,7 +485,7 @@ def main_loop():
     # 检查看有没有已经发起但是还没有签到的签到任务
     for course in data_new:
         if course['state'] == "not_signed_in":
-            log(f"发现\"{course['name']}\"课程还没有签到, 将在3秒后尝试签到")
+            log(f"发现\"{course['name']}\"课程还没有签到, 将在3秒后尝试签到", 2)
             time.sleep(3)
             request_to_sign_in(course['id'])
 
@@ -497,22 +526,22 @@ def main_loop():
                     else:
                         break
                 if data_new[index]['state'] == 'not_signed_in':
-                    log(f"\"{course['name']}\"已经可以签到了, 程序将在 5 秒后尝试签到")
+                    log(f"\"{course['name']}\"已经可以签到了, 程序将在 5 秒后尝试签到", 2)
                     time.sleep(5)
                     i = 0
                     while request_to_sign_in(course['id']) != 0:
-                        log("签到失败, 将在 3 秒后重试")
+                        log("签到失败, 将在 3 秒后重试", 2)
                         i += 1
                         if i == 5:
-                            log(f"签到失败, 跳过\"{course['name']}\"课程签到")
+                            log(f"签到失败, 跳过\"{course['name']}\"课程签到", 2)
                             return 1
                         time.sleep(3)
-                    log("签到成功")
+                    log(f"课程\"{course['name']}\"签到成功", 2)
                 elif data_new[index]['state'] == 'signed_in':
                     log("此签到任务已完成签到, 切换下一个任务")
                     break
                 else:
-                    log("签到任务暂未发布, 继续等待...")
+                    log("签到任务暂未发布, 继续等待...", 0)
                     time.sleep(config_data['CHECK_INTERVAL'])
 
                     now = datetime.datetime.now()
@@ -525,6 +554,8 @@ def main_loop():
     next_6am_timedelta = next_6am - now
     log(f"似乎今天已经没有课了, 程序将会在 {next_6am} 继续运行")
     time.sleep(next_6am_timedelta.seconds)
+
+    return 0
 
 def main():
     log("尝试登录中...")
@@ -539,16 +570,16 @@ def main():
             case 0:
                 time.sleep(1)
             case 1:
-                log("签到失败, 开始检测下一课程签到")
+                log("签到失败, 开始检测下一课程签到", 2)
                 time.sleep(1)
             case 2:
-                log("登录失败, 将在3秒后重试")
+                log("登录失败, 将在3秒后重试", 2)
                 time.sleep(3)
             case 3:
-                log("无法获取签到任务信息, 将在15秒后重试")
+                log("无法获取签到任务信息, 将在15秒后重试", 2)
                 time.sleep(15)
             case _:
-                log("未知状态...程序退出!!!")
+                log("未知状态...程序退出!!!", 2)
                 exit()
 
 main()

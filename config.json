@@ -6,5 +6,9 @@
     "only_use_remember_token": false,
     "rme_token": "XXXXXXXXXXXXX",
     "advance_waiting_time_seconds": 900,
-    "request_timeout": 30
+    "request_timeout": 30,
+    "push": {
+        "enable": false,
+        "WxPusher_SPT": ""
+    }
 }

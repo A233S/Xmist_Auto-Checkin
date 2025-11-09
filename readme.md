@@ -39,7 +39,11 @@
     "only_use_remember_token": false,   // 是否只使用 `remember_token` 来登录
     "rme_token": "",    // 普通用户无需理会
     "advance_waiting_time_seconds": 900,    // 在课程开始前多少秒循环检测是否可以签到
-    "request_timeout": 30   // 请求超时时间
+    "request_timeout": 30,   // 请求超时时间
+    "push": {
+        "enable": false,   // 是否使用 `WxPusher` 推送消息
+        "WxPusher_SPT": ""
+    }
 }
 ```
 3. 运行 `xmist_auto-checkin.exe` 即可
