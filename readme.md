@@ -6,6 +6,8 @@
 
 此程序会在签到开始前循环检测签到是否发起，并在发起后自动尝试签到。签到所使用的经纬度信息存储在 `location_info.json` 中，如果没有准确的经纬度，则会选择一个最为接近的经纬度。
 
+学校签到系统使用 `GCJ02` 坐标系,可通过 **[经纬度定位测距工具](https://mp.weixin.qq.com/mp/waerrpage?appid=wxedb2ba72a015fe32&type=upgrade&upgradetype=3#wechat_redirect)** 微信小程序获取对应经纬度。
+
 > [!IMPORTANT]
 > 此程序(脚本)仅供交流与学习
 
