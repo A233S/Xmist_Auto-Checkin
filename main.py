@@ -354,7 +354,7 @@ def get_checkin_data():
         data_new[index]['location_info']['latitude'] = location_data.get(data_new[index]['location_info']['name'], {}).get('latitude', None)
 
         # 如果 `location_info.json` 里没有精确的位置, 则找一个最接近的
-        if data_new[index]['location_info']['longitude'] == None:
+        if data_new[index]['location_info']['longitude'] == None and data_new[index]['location_info']['name'] != None:
             class_location = data_new[index]['location_info']['name']
             ambiguous_location = location_data
             i = 0
