@@ -36,7 +36,10 @@ def push(summary, conetnt=None):
             "spt": config_data['push']['WxPusher_SPT']
         }
 
-        requests.post("https://wxpusher.zjiecode.com/api/send/message/simple-push", json=data)
+        try:
+            requests.post("https://wxpusher.zjiecode.com/api/send/message/simple-push", json=data)
+        except:
+            log("网络错误")
 
 def login(USERNAME, PASSWORD):
     session.headers.update({
@@ -111,10 +114,17 @@ def get_token_and_ticket_by_password(username, password, use_rme):
     "encoding": "UTF-8",
     "format": 1
     }
-    respone = requests.post("https://www.toolhelper.cn/SymmetricEncryption/AesEncrypt?gts=1762427258662&gv=237&r_=0.7967918398911576", data=data)
+    try:
+        respone = requests.post("https://www.toolhelper.cn/SymmetricEncryption/AesEncrypt?gts=1762427258662&gv=237&r_=0.7967918398911576", data=data)
+    except:
+        log("网络错误")
     password_encrypt = respone.json()['Data']
 
-    captcha_respone = session.get("https://sso.xmist.edu.cn/ssox/code")
+    try:
+        captcha_respone = session.get("https://sso.xmist.edu.cn/ssox/code")
+    except:
+        log("网络错误")
+        return 1
     captcha_result = captcha_respone.json()
     if captcha_result['code'] != 0:
         return 1
@@ -125,7 +135,11 @@ def get_token_and_ticket_by_password(username, password, use_rme):
         "token": "LlyiKwDQdHjd50iZhOQneW1qqxU6rYg2tmj4EYH1HMk",
         "type": 50100
     }
-    captcha_sp_result = requests.post("http://api.jfbym.com/api/YmServer/customApi", json=data, timeout=120).json()
+    try:
+        captcha_sp_result = requests.post("http://api.jfbym.com/api/YmServer/customApi", json=data, timeout=120).json()
+    except:
+        log("网络错误")
+        return 1
     if captcha_sp_result['code'] == 10000:
         captcha_code = captcha_sp_result['data']['data']
     else:
@@ -143,7 +157,11 @@ def get_token_and_ticket_by_password(username, password, use_rme):
         "remeberMe": use_rme
     }
 
-    respone = session.post("https://sso.xmist.edu.cn/ssox/auth/token", data=data)
+    try:
+        respone = session.post("https://sso.xmist.edu.cn/ssox/auth/token", data=data)
+    except:
+        log("网络错误")
+        return 1
     result = respone.json()
     if result.get('code') == 0 and result.get('data').get('token') != None:
         token = result.get('data').get('token')
