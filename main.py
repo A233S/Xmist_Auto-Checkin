@@ -115,7 +115,7 @@ def get_token_and_ticket_by_password(username, password, use_rme):
     "format": 1
     }
     try:
-        respone = requests.post("https://www.toolhelper.cn/SymmetricEncryption/AesEncrypt?gts=1762427258662&gv=237&r_=0.7967918398911576", data=data)
+        respone = requests.post("https://www.toolhelper.cn/SymmetricEncryption/AesEncrypt?gts=1763047178874&gv=237&r_=0.4465522583432131", data=data)
     except:
         log("网络错误")
     password_encrypt = respone.json()['Data']
