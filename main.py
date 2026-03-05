@@ -115,9 +115,12 @@ def get_token_and_ticket_by_password(username, password, use_rme):
     "format": 1
     }
     try:
-        respone = requests.post("https://www.toolhelper.cn/SymmetricEncryption/AesEncrypt?gts=1763047178874&gv=237&r_=0.4465522583432131", data=data)
-    except:
-        log("网络错误")
+        gts = re.search(r'(?<=var t_timestamp = \')\d+', requests.get("https://www.toolhelper.cn/SymmetricEncryption/AES").text).group()
+        gv = re.search(r'(?<=var t_version = \')\d+', requests.get("https://www.toolhelper.cn/SymmetricEncryption/AES").text).group()
+        # print(f"gts={gts}&gv={gv}")
+        respone = requests.post(f"https://www.toolhelper.cn/SymmetricEncryption/AesEncrypt?gts={gts}&gv={gv}", data=data)
+    except Exception as e:
+        log(f"网络错误{e}")
     password_encrypt = respone.json()['Data']
 
     try:
